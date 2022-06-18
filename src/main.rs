@@ -1,9 +1,7 @@
 use embedded_graphics::{
-    image::{Image, ImageRaw},
     mono_font::{ascii::FONT_6X10, MonoTextStyle, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    text::{Baseline, Text},
 };
 use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
 
@@ -14,6 +12,9 @@ use std::io::Write;
 use std::path::Path;
 
 use std::time::SystemTime;
+
+mod components;
+use components::{Component, Disk, Hostname, UpdateIndicator};
 
 type Display = Ssd1306<
     I2CInterface<EmbeddedHALWriter<File>>,
@@ -89,7 +90,7 @@ impl From<String> for Error {
     }
 }
 
-struct Drawer<'a> {
+pub struct Drawer<'a> {
     display: Display,
     base_text_style: MonoTextStyle<'a, BinaryColor>,
 }
@@ -118,66 +119,20 @@ impl Drawer<'_> {
             .build()
     }
 
-    pub fn draw(&mut self, data: &DrawableData, tick: u64) -> Result<(), Error> {
+    pub fn draw(
+        &mut self,
+        tick: u64,
+        components: &mut Vec<Box<dyn Component>>,
+    ) -> Result<(), Error> {
         let burn_in_offset = Point::new((tick / 17 % 5) as i32, (tick / 11 % 5) as i32);
 
         self.display.clear();
 
-        self.draw_hostname(data, burn_in_offset, tick);
-        self.draw_update_indicator(data, burn_in_offset, tick);
+        for (i, c) in &mut components.iter().enumerate() {
+            c.draw(self, burn_in_offset + Point::new(0, 11 * i as i32), tick)?;
+        }
 
         self.display.flush()?;
-        Ok(())
-    }
-
-    fn draw_hostname(
-        &mut self,
-        data: &DrawableData,
-        burn_in_offset: Point,
-        _tick: u64,
-    ) -> Result<(), Error> {
-        Text::with_baseline(
-            data.hostname.as_ref().ok_or("hostname not available")?,
-            Point::zero() + burn_in_offset,
-            self.base_text_style.clone(),
-            Baseline::Top,
-        )
-        .draw(&mut self.display)?;
-
-        Ok(())
-    }
-
-    fn draw_update_indicator(
-        &mut self,
-        _data: &DrawableData,
-        _burn_in_offset: Point,
-        tick: u64,
-    ) -> Result<(), Error> {
-        #[rustfmt::skip]
-        const V: &[u8] = &[
-            0b010_00000,
-            0b000_00000,
-            0b010_00000,
-        ];
-        #[rustfmt::skip]
-        const H: &[u8] = &[
-            0b000_00000,
-            0b101_00000,
-            0b000_00000
-        ];
-
-        Image::new(
-            &ImageRaw::<BinaryColor>::new(
-                match tick % 2 {
-                    0 => H,
-                    1..=u64::MAX => V,
-                },
-                3,
-            ),
-            Point::new(64 - 3, 128 - 3),
-        )
-        .draw(&mut self.display)?;
-
         Ok(())
     }
 }
@@ -188,38 +143,54 @@ impl Drop for Drawer<'_> {
     }
 }
 
-struct DrawableData {
-    hostname: Option<String>,
-    disks: Vec<DiskData>,
-}
-
-#[derive(Debug)]
-struct DiskData {
-    name: String,
-    size: u64,
-    available: u64,
-}
-
-impl DiskData {
-    fn new_from_name(name: &str) -> Result<Self, Error> {
-        // todo: check if path is mount point
-        let stats = nix::sys::statfs::statfs(&Path::new("/data/chunks/").join(name))
-            .map_err(|e| format!("Could not collect stats for disk '{}': {}", name, e))?;
-
-        Ok(Self {
-            name: name.to_string(),
-            size: stats.blocks() * stats.block_size() as u64,
-            available: stats.blocks_available() * stats.block_size() as u64, // available to non-root
-                                                                             // free: stats.blocks_free() * stats.block_size() as u64, // available to root
-        })
-    }
-}
-
 fn main() {
     let mut drawer = Drawer::new_from_device_path(std::path::Path::new("/dev/i2c-0"))
         .expect("Could not access display");
 
-    let hostname: String = hostname::get().unwrap().to_string_lossy().into();
+    // let mut components: Vec<Box<dyn Component>> = vec![
+    //     Box::new(Hostname{hostname: None}),
+    //     //     disks: [
+    //     //         "ata-WDC_WD20EADS-00R6B0_WD-WCAVY4680915-part1",
+    //     //         "ata-WDC_WD40EZRX-00SPEB0_WD-WCC4E0083075-part1",
+    //     //     ]
+    //     //     .iter()
+    //     //     .map(|name| DiskData::new_from_name(name))
+    //     //     .filter_map(|disk| match disk {
+    //     //         Ok(d) => Some(d),
+    //     //         Err(e) => {
+    //     //             println!("{}", e);
+    //     //             None
+    //     //         }
+    //     //     })
+    //     //     .collect::<Vec<_>>(),
+    //     Box::new(UpdateIndicator{}),
+    // ];
+
+    let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
+    components.push(Box::new(Hostname { hostname: None }));
+
+    components.extend(
+        [
+            "my-disk-1",
+            "my-disk-2",
+            "blubber",
+        ]
+        .iter()
+        .map(|name| Disk::new_from_name(name))
+        .filter_map(|disk| -> Option<Box<dyn Component>> {
+            match disk {
+                Ok(d) => Some(Box::new(d)),
+                Err(e) => {
+                    println!("{}", e);
+                    None
+                }
+            }
+        }),
+    );
+
+    components.push(Box::new(UpdateIndicator {}));
+
+    println!("Started");
 
     loop {
         let tick = SystemTime::now()
@@ -227,24 +198,12 @@ fn main() {
             .expect("Could not get time")
             .as_secs();
 
-        let data = DrawableData {
-            hostname: Some(hostname.clone()),
-            disks: [
-                "my-disk-1",
-                "my-disk-2",
-            ]
-            .iter()
-            .map(|name| DiskData::new_from_name(name))
-            .filter_map(|disk| match disk {
-                Ok(d) => Some(d),
-                Err(e) => {
-                    println!("{}", e);
-                    None
-                }
-            })
-            .collect::<Vec<_>>(),
-        };
+        for c in &mut components {
+            c.update().unwrap();
+        }
 
-        drawer.draw(&data, tick).expect("Could not draw update");
+        drawer
+            .draw(tick, &mut components)
+            .expect("Could not draw update");
     }
 }
