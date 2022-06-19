@@ -16,6 +16,9 @@ use std::time::SystemTime;
 mod components;
 use components::{Component, Disk, Hostname, UpdateIndicator};
 
+mod units;
+pub use units::{GlancableSizesWithOrdersOfMagnitude, Base};
+
 type Display = Ssd1306<
     I2CInterface<EmbeddedHALWriter<File>>,
     DisplaySize128x64,

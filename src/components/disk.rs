@@ -1,4 +1,5 @@
 use super::{Component, Drawer, Error};
+use crate::{GlancableSizesWithOrdersOfMagnitude, Base};
 
 use std::path::Path;
 
@@ -24,7 +25,7 @@ impl Disk {
             name: name.to_string(),
             size: stats.blocks() * stats.block_size() as u64,
             available: stats.blocks_available() * stats.block_size() as u64, // available to non-root
-                                                                             // free: stats.blocks_free() * stats.block_size() as u64, // available to root
+            // free: stats.blocks_free() * stats.block_size() as u64, // available to root
         })
     }
 }
@@ -40,7 +41,7 @@ impl Component for Disk {
 
     fn draw(&self, drawable: &mut Drawer, offset: Point, _tick: u64) -> Result<(), Error> {
         Text::with_baseline(
-            &self.name,
+            format!("{}/{}", GlancableSizesWithOrdersOfMagnitude::new(self.size - self.available, Base::Two), GlancableSizesWithOrdersOfMagnitude::new(self.size, Base::Two)).as_str(),
             offset,
             drawable.base_text_style.clone(),
             Baseline::Top,
