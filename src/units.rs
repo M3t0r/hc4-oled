@@ -40,6 +40,7 @@ impl GlancableSizesWithOrdersOfMagnitude {
         }
         
         let mut remainder = value;
+        let mut previous_remainder = 0u64;
         let mut magnitude = 0u64;
         let (numerical_base, prefixes) = match base {
             Base::Two => (1024u64, BINARY_PREFIXES),
@@ -47,8 +48,14 @@ impl GlancableSizesWithOrdersOfMagnitude {
         };
 
         while remainder >= numerical_base {
+            previous_remainder = remainder;
             remainder /= numerical_base;
             magnitude += 1;
+        }
+
+        // if we have 0.9 or more, round up
+        if previous_remainder - (remainder * numerical_base) > 900 {
+            remainder += 1;
         }
 
         return Self {
@@ -95,5 +102,12 @@ mod tests {
         let v = GlancableSizesWithOrdersOfMagnitude::new(6_001_000_443_904, Base::Two);
         assert_eq!(v.value, 5);
         assert_eq!(v.unit_short, "TiB");
+    }
+
+    #[test]
+    fn test_little_less_than_4tb_metric() {
+        let v = GlancableSizesWithOrdersOfMagnitude::new(3_920_320_420_904, Base::Ten);
+        assert_eq!(v.value, 4);
+        assert_eq!(v.unit_short, "TB");
     }
 }
