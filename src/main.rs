@@ -2,6 +2,7 @@ use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
+    primitives::PrimitiveStyle,
 };
 use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
 
@@ -17,7 +18,7 @@ mod components;
 use components::{Component, Disk, Hostname, UpdateIndicator};
 
 mod units;
-pub use units::{GlancableSizesWithOrdersOfMagnitude, Base};
+pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
 
 type Display = Ssd1306<
     I2CInterface<EmbeddedHALWriter<File>>,
@@ -96,9 +97,14 @@ impl From<String> for Error {
 pub struct Drawer<'a> {
     display: Display,
     base_text_style: MonoTextStyle<'a, BinaryColor>,
+    base_primitive_style: PrimitiveStyle<BinaryColor>,
 }
 
 impl Drawer<'_> {
+    pub const BURNIN_OFFSET_MAX: u8 = 5;
+    pub const WIDTH: u8 = 64 - Self::BURNIN_OFFSET_MAX;
+    pub const HEIGHT: u8 = 128 - Self::BURNIN_OFFSET_MAX;
+    pub const LINE_HEIGHT: u8 = 11;
     pub fn new_from_device_path(path: &Path) -> Result<Self, Error> {
         let mut display = Ssd1306::new(
             I2CDisplayInterface::new(EmbeddedHALWriter(I2c::<File>::from_path(path)?)),
@@ -111,15 +117,12 @@ impl Drawer<'_> {
 
         Ok(Self {
             display,
-            base_text_style: Self::get_base_text_style(),
+            base_text_style: MonoTextStyleBuilder::new()
+                .font(&FONT_6X10)
+                .text_color(BinaryColor::On)
+                .build(),
+            base_primitive_style: PrimitiveStyle::with_stroke(BinaryColor::On, 1),
         })
-    }
-
-    fn get_base_text_style() -> MonoTextStyle<'static, BinaryColor> {
-        MonoTextStyleBuilder::new()
-            .font(&FONT_6X10)
-            .text_color(BinaryColor::On)
-            .build()
     }
 
     pub fn draw(
@@ -127,12 +130,15 @@ impl Drawer<'_> {
         tick: u64,
         components: &mut Vec<Box<dyn Component>>,
     ) -> Result<(), Error> {
-        let burn_in_offset = Point::new((tick / 17 % 5) as i32, (tick / 11 % 5) as i32);
+        let burn_in_offset = Point::new(
+            (tick / 17u64 % Self::BURNIN_OFFSET_MAX as u64) as i32,
+            (tick / 11u64 % Self::BURNIN_OFFSET_MAX as u64) as i32,
+        );
 
         self.display.clear();
 
         for (i, c) in &mut components.iter().enumerate() {
-            c.draw(self, burn_in_offset + Point::new(0, 11 * i as i32), tick)?;
+            c.draw(self, burn_in_offset + Point::new(0, (Self::LINE_HEIGHT * i as u8).into()), tick)?;
         }
 
         self.display.flush()?;

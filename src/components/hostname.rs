@@ -25,7 +25,7 @@ impl Component for Hostname
         Text::with_baseline(
             self.hostname.as_ref().ok_or("hostname not available")?,
             offset,
-            drawable.base_text_style.clone(),
+            drawable.base_text_style,
             Baseline::Top,
         )
         .draw(&mut drawable.display)?;
