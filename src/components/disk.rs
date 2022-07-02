@@ -18,25 +18,34 @@ pub struct Disk {
 
 impl Disk {
     pub fn new_from_name(name: &str) -> Result<Self, Error> {
-        // todo: check if path is mount point
-        let stats = nix::sys::statfs::statfs(&Path::new("/data/chunks/").join(name))
-            .map_err(|e| format!("Could not collect stats for disk '{}': {}", name, e))?;
-
         Ok(Self {
             name: name.to_string(),
-            size: stats.blocks() * stats.block_size() as u64,
-            available: stats.blocks_available() * stats.block_size() as u64, // available to non-root
-            // free: stats.blocks_free() * stats.block_size() as u64, // available to root
+            size: 0,
+            available: 0,
         })
     }
 }
 
+impl std::fmt::Display for Disk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
 impl Component for Disk {
-    fn should_update(&self, _last_update: std::time::Duration) -> bool {
-        return false;
+    fn should_update(&self, last_update: std::time::Duration) -> bool {
+        return last_update > std::time::Duration::from_secs(60 * 5);
     }
 
     fn update(&mut self) -> Result<(), Error> {
+        // todo: check if path is mount point
+        let stats = nix::sys::statfs::statfs(&Path::new("/data/chunks/").join(&self.name))
+            .map_err(|e| format!("Could not collect stats for disk '{}': {}", self.name, e))?;
+
+        self.size = stats.blocks() * stats.block_size() as u64;
+        self.available = stats.blocks_available() * stats.block_size() as u64; // available to non-roo
+        // self.free = stats.blocks_free() * stats.block_size() as u64; // available to root
+
         Ok(())
     }
 

@@ -12,7 +12,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use std::time::SystemTime;
+use std::time::{SystemTime, Instant};
 
 mod components;
 use components::{Component, Disk, Hostname, UpdateIndicator};
@@ -137,7 +137,7 @@ impl Drawer<'_> {
 
         self.display.clear();
 
-        for (i, c) in &mut components.iter().enumerate() {
+        for (i, c) in components.iter().enumerate() {
             c.draw(self, burn_in_offset + Point::new(0, (Self::LINE_HEIGHT * i as u8).into()), tick)?;
         }
 
@@ -155,25 +155,6 @@ impl Drop for Drawer<'_> {
 fn main() {
     let mut drawer = Drawer::new_from_device_path(std::path::Path::new("/dev/i2c-0"))
         .expect("Could not access display");
-
-    // let mut components: Vec<Box<dyn Component>> = vec![
-    //     Box::new(Hostname{hostname: None}),
-    //     //     disks: [
-    //     //         "ata-WDC_WD20EADS-00R6B0_WD-WCAVY4680915-part1",
-    //     //         "ata-WDC_WD40EZRX-00SPEB0_WD-WCC4E0083075-part1",
-    //     //     ]
-    //     //     .iter()
-    //     //     .map(|name| DiskData::new_from_name(name))
-    //     //     .filter_map(|disk| match disk {
-    //     //         Ok(d) => Some(d),
-    //     //         Err(e) => {
-    //     //             println!("{}", e);
-    //     //             None
-    //     //         }
-    //     //     })
-    //     //     .collect::<Vec<_>>(),
-    //     Box::new(UpdateIndicator{}),
-    // ];
 
     let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
     components.push(Box::new(Hostname { hostname: None }));
@@ -199,6 +180,15 @@ fn main() {
 
     components.push(Box::new(UpdateIndicator {}));
 
+    let mut last_updates: Vec<Instant> = vec![Instant::now(); components.len()];
+
+    for c in &mut components {
+        match c.update() {
+            Ok(_) => (),
+            Err(e) => println!("{}", e),
+        };
+    }
+
     println!("Started");
 
     loop {
@@ -207,8 +197,15 @@ fn main() {
             .expect("Could not get time")
             .as_secs();
 
-        for c in &mut components {
-            c.update().unwrap();
+        for (i, c) in &mut components.iter_mut().enumerate() {
+            if c.should_update(Instant::now() - last_updates[i]) {
+                println!("Updating {}", &c);
+                match c.update() {
+                    Ok(_) => (),
+                    Err(e) => println!("{}", e),
+                };
+                last_updates[i] = Instant::now();
+            }
         }
 
         drawer

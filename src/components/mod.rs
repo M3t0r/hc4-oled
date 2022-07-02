@@ -5,7 +5,7 @@ pub use crate::{Drawer, Error};
 //     D: embedded_graphics::prelude::DrawTarget<Color = embedded_graphics::pixelcolor::BinaryColor, Error = display_interface::DisplayError>,
 // {
 
-pub trait Component: std::fmt::Debug
+pub trait Component: std::fmt::Debug + std::fmt::Display
 {
     fn should_update(&self, last_update: std::time::Duration) -> bool;
 

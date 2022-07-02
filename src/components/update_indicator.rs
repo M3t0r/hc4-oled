@@ -9,6 +9,12 @@ use embedded_graphics::{
 #[derive(Debug)]
 pub struct UpdateIndicator {}
 
+impl std::fmt::Display for UpdateIndicator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "UpdateIndicator")
+    }
+}
+
 impl Component for UpdateIndicator {
     fn should_update(&self, _last_update: std::time::Duration) -> bool {
         return false;

@@ -10,6 +10,12 @@ pub struct Hostname {
     pub hostname: Option<String>,
 }
 
+impl std::fmt::Display for Hostname {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Hostname")
+    }
+}
+
 impl Component for Hostname
 {
     fn should_update(&self, _last_update: std::time::Duration) -> bool {
