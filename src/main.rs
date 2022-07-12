@@ -12,7 +12,9 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use std::time::{SystemTime, Instant};
+use std::time::{Instant, SystemTime};
+
+use clap::Parser;
 
 mod components;
 use components::{Component, Disk, Hostname, Load, UpdateIndicator};
@@ -138,7 +140,11 @@ impl Drawer<'_> {
         self.display.clear();
 
         for (i, c) in components.iter().enumerate() {
-            c.draw(self, burn_in_offset + Point::new(0, (Self::LINE_HEIGHT * i as u8).into()), tick)?;
+            c.draw(
+                self,
+                burn_in_offset + Point::new(0, (Self::LINE_HEIGHT * i as u8).into()),
+                tick,
+            )?;
         }
 
         self.display.flush()?;
@@ -152,33 +158,50 @@ impl Drop for Drawer<'_> {
     }
 }
 
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// The I2C device to use to communicate with the display
+    #[clap(long)]
+    device: std::path::PathBuf,
+
+    /// Which disks to monitor
+    #[clap(long = "disk")]
+    disks: Vec<String>,
+
+    /// Enable CPU load graph
+    #[clap(short, long)]
+    load: bool,
+}
+
 fn main() {
-    let mut drawer = Drawer::new_from_device_path(std::path::Path::new("/dev/i2c-0"))
-        .expect("Could not access display");
+    let args = Args::parse();
+
+    dbg!(&args);
+
+    let mut drawer = Drawer::new_from_device_path(&args.device).expect("Could not access display");
 
     let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
     components.push(Box::new(Hostname { hostname: None }));
 
     components.extend(
-        [
-            "my-disk-1",
-            "my-disk-2",
-            "blubber",
-        ]
-        .iter()
-        .map(|name| Disk::new_from_name(name))
-        .filter_map(|disk| -> Option<Box<dyn Component>> {
-            match disk {
-                Ok(d) => Some(Box::new(d)),
-                Err(e) => {
-                    println!("{}", e);
-                    None
+        args.disks
+            .iter()
+            .map(|name| Disk::new_from_name(name))
+            .filter_map(|disk| -> Option<Box<dyn Component>> {
+                match disk {
+                    Ok(d) => Some(Box::new(d)),
+                    Err(e) => {
+                        println!("{}", e);
+                        None
+                    }
                 }
-            }
-        }),
+            }),
     );
 
-    components.push(Box::new(Load::new().expect("Could not collect load stats")));
+    if args.load {
+        components.push(Box::new(Load::new().expect("Could not collect load stats")));
+    }
 
     components.push(Box::new(UpdateIndicator {}));
 
