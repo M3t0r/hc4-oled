@@ -15,7 +15,7 @@ use std::path::Path;
 use std::time::{SystemTime, Instant};
 
 mod components;
-use components::{Component, Disk, Hostname, UpdateIndicator};
+use components::{Component, Disk, Hostname, Load, UpdateIndicator};
 
 mod units;
 pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
@@ -109,7 +109,7 @@ impl Drawer<'_> {
         let mut display = Ssd1306::new(
             I2CDisplayInterface::new(EmbeddedHALWriter(I2c::<File>::from_path(path)?)),
             DisplaySize128x64,
-            DisplayRotation::Rotate90,
+            DisplayRotation::Rotate270,
         )
         .into_buffered_graphics_mode();
         display.init()?;
@@ -177,6 +177,8 @@ fn main() {
             }
         }),
     );
+
+    components.push(Box::new(Load::new().expect("Could not collect load stats")));
 
     components.push(Box::new(UpdateIndicator {}));
 

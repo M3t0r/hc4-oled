@@ -20,9 +20,11 @@ pub trait Component: std::fmt::Debug + std::fmt::Display
 }
 
 mod disk;
+mod load;
 mod hostname;
 mod update_indicator;
 
 pub use self::disk::Disk;
+pub use self::load::Load;
 pub use self::hostname::Hostname;
 pub use self::update_indicator::UpdateIndicator;
