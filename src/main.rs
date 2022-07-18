@@ -51,6 +51,8 @@ pub enum Error {
     String(String),
 }
 
+impl std::error::Error for Error {}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -107,7 +109,7 @@ impl Drawer<'_> {
     pub const WIDTH: u8 = 64 - Self::BURNIN_OFFSET_MAX;
     pub const HEIGHT: u8 = 128 - Self::BURNIN_OFFSET_MAX;
     pub const LINE_HEIGHT: u8 = 11;
-    pub fn new_from_device_path(path: &Path) -> Result<Self, Error> {
+    pub fn new_from_device_path(path: &Path, brightness: Brightness) -> Result<Self, Error> {
         let mut display = Ssd1306::new(
             I2CDisplayInterface::new(EmbeddedHALWriter(I2c::<File>::from_path(path)?)),
             DisplaySize128x64,
@@ -116,6 +118,7 @@ impl Drawer<'_> {
         .into_buffered_graphics_mode();
         display.init()?;
         display.set_display_on(true)?;
+        display.set_brightness(brightness)?;
 
         Ok(Self {
             display,
@@ -158,6 +161,17 @@ impl Drop for Drawer<'_> {
     }
 }
 
+fn parse_brightness(value: &str) -> Result<Brightness, Error> {
+    match value.to_lowercase().as_str() {
+        "brightest" => Ok(Brightness::BRIGHTEST),
+        "brigh" => Ok(Brightness::BRIGHT),
+        "normal" => Ok(Brightness::NORMAL),
+        "dim" => Ok(Brightness::DIM),
+        "dimmest" => Ok(Brightness::DIMMEST),
+        unknown => Err(format!("{} is not a known brightness", unknown).into()),
+    }
+}
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -172,6 +186,10 @@ struct Args {
     /// Enable CPU load graph
     #[clap(short, long)]
     load: bool,
+
+    /// Display brightness. Possible values are bightest, bright, normal, dim, dimmest.
+    #[clap(short, long, default_value = "normal", parse(try_from_str = parse_brightness))]
+    brightness: Brightness,
 }
 
 fn main() {
@@ -179,7 +197,7 @@ fn main() {
 
     dbg!(&args);
 
-    let mut drawer = Drawer::new_from_device_path(&args.device).expect("Could not access display");
+    let mut drawer = Drawer::new_from_device_path(&args.device, args.brightness).expect("Could not access display");
 
     let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
     components.push(Box::new(Hostname { hostname: None }));
