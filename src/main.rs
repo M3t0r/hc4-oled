@@ -10,7 +10,7 @@ use i2c_linux::I2c;
 
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use std::time::{Instant, SystemTime};
 
@@ -161,6 +161,13 @@ impl Drop for Drawer<'_> {
     }
 }
 
+fn detect_disks(mount_folder: &Path) -> Result<Vec<PathBuf>, Error> {
+    mount_folder.read_dir()?.map(|f| {
+        let f = f?.path();
+        return Ok(f)
+    }).collect()
+}
+
 fn parse_brightness(value: &str) -> Result<Brightness, Error> {
     match value.to_lowercase().as_str() {
         "brightest" => Ok(Brightness::BRIGHTEST),
@@ -179,9 +186,9 @@ struct Args {
     #[clap(long)]
     device: std::path::PathBuf,
 
-    /// Which disks to monitor
-    #[clap(long = "disk")]
-    disks: Vec<String>,
+    /// Where to find disk mount points
+    #[clap(long = "mounts")]
+    mounts: PathBuf,
 
     /// Enable CPU load graph
     #[clap(short, long)]
@@ -195,7 +202,7 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    dbg!(&args);
+    let known_disks = detect_disks(&args.mounts).expect("Could not collect known disks");
 
     let mut drawer = Drawer::new_from_device_path(&args.device, args.brightness).expect("Could not access display");
 
@@ -203,9 +210,9 @@ fn main() {
     components.push(Box::new(Hostname { hostname: None }));
 
     components.extend(
-        args.disks
+        known_disks
             .iter()
-            .map(|name| Disk::new_from_name(name))
+            .map(|path| Disk::new_from_path(path.file_name().expect("Could not get name from mountpoint").to_string_lossy().to_string()))
             .filter_map(|disk| -> Option<Box<dyn Component>> {
                 match disk {
                     Ok(d) => Some(Box::new(d)),
