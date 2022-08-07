@@ -77,8 +77,11 @@ impl Component for Disk {
             drawable.base_text_style,
             Baseline::Top,
         );
-
-        size_text.translate(Point::new(24,0)).draw(&mut drawable.display)?;
+        let size_text_width = size_text.bounding_box().size.width;
+        size_text.translate(Point::new(
+            ((Drawer::WIDTH as u32 - size_text_width) / 2) as i32,
+            0
+        )).draw(&mut drawable.display)?;
 
         Ok(())
     }
