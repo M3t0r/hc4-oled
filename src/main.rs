@@ -212,7 +212,7 @@ fn main() {
     components.extend(
         known_disks
             .iter()
-            .map(|path| Disk::new_from_path(path.file_name().expect("Could not get name from mountpoint").to_string_lossy().to_string()))
+            .map(|path| Disk::new_from_path(path))
             .filter_map(|disk| -> Option<Box<dyn Component>> {
                 match disk {
                     Ok(d) => Some(Box::new(d)),
