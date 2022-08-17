@@ -31,7 +31,7 @@ impl Load {
     fn collect_measurement(&mut self) -> Result<(), Error> {
         match &self.measurement {
             None => {
-                return Err("No measurement active to collect".into())
+                Err("No measurement active to collect".into())
             }
             Some(measurement) => {
                 let result = measurement.done()?;
@@ -65,7 +65,7 @@ impl std::fmt::Debug for Load {
 
 impl Component for Load {
     fn should_update(&self, last_update: std::time::Duration) -> bool {
-        return last_update > match self.measurement {
+        last_update > match self.measurement {
             // when a measurement is in progress, update after 1 second to collect values
             Some(_) => std::time::Duration::from_secs(1),
             None => std::time::Duration::from_secs(60),
@@ -76,7 +76,7 @@ impl Component for Load {
         if self.measurement.is_none() {
             return self.start_measurement()
         }
-        return self.collect_measurement()
+        self.collect_measurement()
     }
 
     fn draw(&self, drawable: &mut Drawer, offset: Point, _tick: u64) -> Result<(), Error> {

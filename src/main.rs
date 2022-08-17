@@ -133,7 +133,7 @@ impl Drawer<'_> {
     pub fn draw(
         &mut self,
         tick: u64,
-        components: &mut Vec<Box<dyn Component>>,
+        components: &mut [Box<dyn Component>],
     ) -> Result<(), Error> {
         let burn_in_offset = Point::new(
             (tick / 17u64 % Self::BURNIN_OFFSET_MAX as u64) as i32,
@@ -164,7 +164,7 @@ impl Drop for Drawer<'_> {
 fn detect_disks(mount_folder: &Path) -> Result<Vec<PathBuf>, Error> {
     mount_folder.read_dir()?.map(|f| {
         let f = f?.path();
-        return Ok(f)
+        Ok(f)
     }).collect()
 }
 

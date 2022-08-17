@@ -17,7 +17,7 @@ impl std::fmt::Display for UpdateIndicator {
 
 impl Component for UpdateIndicator {
     fn should_update(&self, _last_update: std::time::Duration) -> bool {
-        return false;
+        false
     }
 
     fn update(&mut self) -> Result<(), Error> {
@@ -26,6 +26,7 @@ impl Component for UpdateIndicator {
 
     fn draw(&self, drawable: &mut Drawer, _offset: Point, tick: u64) -> Result<(), Error> {
         #[rustfmt::skip]
+        #[allow(clippy::unusual_byte_groupings)]
         const FRAMES: &[&[u8]; 2] = &[
             &[
                 0b010_00000,

@@ -37,7 +37,7 @@ impl Disk {
         let mount_parent_fs_id = nix::sys::statvfs::statvfs(mount_parent)?.filesystem_id();
         let mount_point_fs_id = nix::sys::statvfs::statvfs(&self.mount_point)?.filesystem_id();
 
-        return Ok(mount_point_fs_id != mount_parent_fs_id);
+        Ok(mount_point_fs_id != mount_parent_fs_id)
     }
 
     fn draw_usage_bar(&self, drawable: &mut Drawer, offset: Point) -> Result<(), Error> {
@@ -102,12 +102,12 @@ impl std::fmt::Display for Disk {
 
 impl Component for Disk {
     fn should_update(&self, last_update: std::time::Duration) -> bool {
-        return last_update > std::time::Duration::from_secs(
+        last_update > std::time::Duration::from_secs(
             match self.mounted {
                 true => 60 * 5,
                 false => 5, // redetect disks quickly
             }
-        );
+        )
     }
 
     fn update(&mut self) -> Result<(), Error> {
@@ -129,7 +129,7 @@ impl Component for Disk {
     }
 
     fn draw(&self, drawable: &mut Drawer, offset: Point, _tick: u64) -> Result<(), Error> {
-        return match self.mounted {
+        match self.mounted {
             true => self.draw_usage_bar(drawable, offset),
             false => self.draw_not_mounted(drawable, offset),
         }

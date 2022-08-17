@@ -58,7 +58,7 @@ impl GlancableSizesWithOrdersOfMagnitude {
             remainder += 1;
         }
 
-        return Self {
+        Self {
             unit_short: format!("{}B", prefixes[magnitude as usize]),
             value: remainder,
         }

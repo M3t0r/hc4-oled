@@ -19,7 +19,7 @@ impl std::fmt::Display for Hostname {
 impl Component for Hostname
 {
     fn should_update(&self, _last_update: std::time::Duration) -> bool {
-        return self.hostname.is_none(); // update when hostname not present
+        self.hostname.is_none() // update when hostname not present
     }
 
     fn update(&mut self) -> Result<(), Error> {
