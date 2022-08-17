@@ -23,7 +23,9 @@ impl Component for Hostname
     }
 
     fn update(&mut self) -> Result<(), Error> {
-        self.hostname = Some(hostname::get()?.to_string_lossy().into());
+        if self.hostname.is_none() {
+            self.hostname = Some(hostname::get()?.to_string_lossy().into());
+        }
         Ok(())
     }
 

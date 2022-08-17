@@ -190,6 +190,10 @@ struct Args {
     #[clap(long = "mounts")]
     mounts: PathBuf,
 
+    /// Set displayed hostname
+    #[clap(short, long, env = "OLED_HOSTNAME")]
+    hostname: Option<String>,
+
     /// Enable CPU load graph
     #[clap(short, long)]
     load: bool,
@@ -200,14 +204,16 @@ struct Args {
 }
 
 fn main() {
+    println!("Starting");
     let args = Args::parse();
+    dbg!(&args);
 
     let known_disks = detect_disks(&args.mounts).expect("Could not collect known disks");
 
     let mut drawer = Drawer::new_from_device_path(&args.device, args.brightness).expect("Could not access display");
 
     let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
-    components.push(Box::new(Hostname { hostname: None }));
+    components.push(Box::new(Hostname { hostname: args.hostname }));
 
     components.extend(
         known_disks
