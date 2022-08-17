@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: oled
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: oled
+  name: oled
+  namespace: oled
+spec:
+  selector:
+    matchLabels:
+      app: oled
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: "100%" # replace all of them at once
+  template:
+    metadata:
+      labels:
+        app: oled
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: oled
+        command: ["oled"]
+        args:
+          - --mounts=/host/data/chunks
+          - --load
+          - --brightness=dim
+          - --device=/host/dev/i2c-0
+        image: m3t0r/oled:latest
+        imagePullPolicy: Always
+        env:
+          - name: OLED_HOSTNAME
+            valueFrom:
+              fieldRef: 
+                fieldPath: spec.nodeName
+        securityContext:
+          privileged: true # for access to i2c device
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 1Mi
+          limits:
+            cpu: 20m
+            memory: 5Mi
+        volumeMounts:
+        - mountPath: /host
+          mountPropagation: HostToContainer
+          name: root
+          readOnly: true
+      restartPolicy: Always
+      securityContext: # write access to i2c device
+        runAsNonRoot: false
+        runAsUser: 0
+        runAsGroup: 0
+      volumes:
+      - hostPath:
+          path: /
+        name: root
