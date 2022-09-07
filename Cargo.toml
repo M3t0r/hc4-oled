@@ -1,6 +1,6 @@
 [package]
 name = "oled"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Simon Brüggen <github@m3t0r.de>"]
 license = "MIT"
 edition = "2021"

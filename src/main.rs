@@ -17,7 +17,7 @@ use std::time::{Instant, SystemTime, Duration};
 use clap::Parser;
 
 mod components;
-use components::{Component, Disk, Hostname, Load, UpdateIndicator};
+use components::{Component, Disk, Hostname, Load, UpdateIndicator, Uptime};
 
 mod units;
 pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
@@ -214,6 +214,7 @@ fn main() {
 
     let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
     components.push(Box::new(Hostname { hostname: args.hostname }));
+    components.push(Box::new(Uptime::new()));
 
     components.extend(
         known_disks
