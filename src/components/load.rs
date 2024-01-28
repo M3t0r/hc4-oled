@@ -43,7 +43,6 @@ impl Load {
                 }
 
                 self.graph_values.push_front(result.user);
-                dbg!(&self.graph_values);
 
                 Ok(())
             }
@@ -87,6 +86,28 @@ impl Component for Load {
             ).into_styled(drawable.base_primitive_style)
             .draw(&mut drawable.display)?;
         }
+
+        for i in 0..Drawer::WIDTH {
+            if i % 10 == 0 {
+                Line::new(
+                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
+                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset
+                ).into_styled(drawable.base_primitive_style)
+                .draw(&mut drawable.display)?;
+            }
+        }
+
+        Line::new(
+            Point::new(0, 0) + offset,
+            Point::new(0, 0) + offset
+        ).into_styled(drawable.base_primitive_style)
+        .draw(&mut drawable.display)?;
+
+        Line::new(
+            Point::new(Drawer::WIDTH.into(), 0) + offset,
+            Point::new(Drawer::WIDTH.into(), 0) + offset
+        ).into_styled(drawable.base_primitive_style)
+        .draw(&mut drawable.display)?;
 
         Ok(())
     }
