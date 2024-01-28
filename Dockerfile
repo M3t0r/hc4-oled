@@ -1,4 +1,4 @@
-FROM rust:1.62-slim as builder
+FROM rust:1.75-slim as builder
 
 # could be "dev" for debug builds
 ARG PROFILE=release

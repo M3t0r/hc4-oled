@@ -41,7 +41,7 @@ impl Component for Uptime {
     fn update(&mut self) -> Result<(), Error> {
         let uptime = self.sys.uptime()?.as_secs();
         self.display_string = format!(
-            "{}d{:2}h{:2}m",
+            "{:3}d{:02}h{:02}m",
             uptime / (60*60*24),
             uptime / (60*60) % 24,
             uptime / 60 % 60,
