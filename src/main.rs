@@ -17,7 +17,7 @@ use std::time::{Instant, SystemTime, Duration};
 use clap::Parser;
 
 mod components;
-use components::{Component, Disk, Hostname, Load, UpdateIndicator, Uptime};
+use components::{Component, Disk, Hostname, Load, Memory, UpdateIndicator, Uptime};
 
 mod units;
 pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
@@ -198,6 +198,10 @@ struct Args {
     #[clap(short, long)]
     load: bool,
 
+    /// Enable memory usage graph
+    #[clap(short, long)]
+    memory: bool,
+
     /// Display brightness. Possible values are bightest, bright, normal, dim, dimmest.
     #[clap(short, long, default_value = "normal", parse(try_from_str = parse_brightness))]
     brightness: Brightness,
@@ -233,6 +237,10 @@ fn main() {
 
     if args.load {
         components.push(Box::new(Load::new().expect("Could not collect load stats")));
+    }
+
+    if args.memory {
+        components.push(Box::new(Memory::new().expect("Could not collect memory stats")));
     }
 
     components.push(Box::new(UpdateIndicator {}));

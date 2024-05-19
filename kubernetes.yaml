@@ -32,6 +32,7 @@ spec:
         args:
           - --mounts=/host/data/chunks
           - --load
+          - --memory
           - --brightness=dim
           - --device=/host/dev/i2c-0
         image: m3t0r/oled:latest

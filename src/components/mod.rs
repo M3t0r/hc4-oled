@@ -21,12 +21,14 @@ pub trait Component: std::fmt::Debug + std::fmt::Display
 
 mod disk;
 mod load;
+mod memory;
 mod hostname;
 mod update_indicator;
 mod uptime;
 
 pub use self::disk::Disk;
 pub use self::load::Load;
+pub use self::memory::Memory;
 pub use self::hostname::Hostname;
 pub use self::update_indicator::UpdateIndicator;
 pub use self::uptime::Uptime;
