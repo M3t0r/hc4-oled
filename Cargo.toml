@@ -11,7 +11,7 @@ edition = "2021"
 ssd1306 = "^0.10.0"
 i2c-linux = "^0.1.2"
 embedded-graphics = "^0.8.0"
-display-interface = "^0.4.1"
+display-interface = "^0.5.0"
 embedded-hal = "^1.0.0"
 clap = {version="^4.0.0", features=["derive", "env"]}
 
