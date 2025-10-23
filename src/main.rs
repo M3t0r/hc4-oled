@@ -203,7 +203,7 @@ struct Args {
     memory: bool,
 
     /// Display brightness. Possible values are bightest, bright, normal, dim, dimmest.
-    #[clap(short, long, default_value = "normal", parse(try_from_str = parse_brightness))]
+    #[clap(short, long, default_value = "normal", value_parser = parse_brightness)]
     brightness: Brightness,
 }
 
