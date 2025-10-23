@@ -4,6 +4,7 @@ use embedded_graphics::{
     prelude::*,
     primitives::PrimitiveStyle,
 };
+use embedded_hal::i2c::SevenBitAddress;
 use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
 
 use i2c_linux::I2c;
@@ -34,12 +35,48 @@ type Display = Ssd1306<
 // expecting byte arrays to be written to them. So we just bridge the gap.
 struct EmbeddedHALWriter<I>(i2c_linux::I2c<I>);
 
-impl embedded_hal::blocking::i2c::Write for EmbeddedHALWriter<File> {
-    type Error = std::io::Error;
-    fn write(&mut self, addr: u8, bytes: &[u8]) -> Result<(), std::io::Error> {
-        self.0.smbus_set_slave_address(addr.into(), false)?;
-        self.0.write_all(bytes)?;
+impl embedded_hal::i2c::ErrorType for EmbeddedHALWriter<File> {
+    type Error = IoError;
+}
+
+impl embedded_hal::i2c::I2c<SevenBitAddress> for EmbeddedHALWriter<File> {
+    fn transaction(
+        &mut self,
+        address: SevenBitAddress,
+        operations: &mut [embedded_hal::i2c::Operation<'_>],
+    ) -> Result<(), IoError> {
+        for op in operations {
+            match op {
+                embedded_hal::i2c::Operation::Write(bytes) => {
+                    self.0.smbus_set_slave_address(address.into(), false)?;
+                    self.0.write_all(bytes)?;
+                }
+                embedded_hal::i2c::Operation::Read(_) => {
+                    unimplemented!();
+                }
+            }
+        }
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct IoError {
+    error: std::io::Error,
+}
+impl embedded_hal::i2c::Error for IoError {
+    fn kind(&self) -> embedded_hal::i2c::ErrorKind {
+        embedded_hal::i2c::ErrorKind::Other
+    }
+}
+impl Into<std::io::Error> for IoError {
+    fn into(self) -> std::io::Error {
+        self.error
+    }
+}
+impl From<std::io::Error> for IoError {
+    fn from(error: std::io::Error) -> Self {
+        Self { error }
     }
 }
 
@@ -130,17 +167,13 @@ impl Drawer<'_> {
         })
     }
 
-    pub fn draw(
-        &mut self,
-        tick: u64,
-        components: &mut [Box<dyn Component>],
-    ) -> Result<(), Error> {
+    pub fn draw(&mut self, tick: u64, components: &mut [Box<dyn Component>]) -> Result<(), Error> {
         let burn_in_offset = Point::new(
             (tick / 17u64 % Self::BURNIN_OFFSET_MAX as u64) as i32,
             (tick / 11u64 % Self::BURNIN_OFFSET_MAX as u64) as i32,
         );
 
-        self.display.clear();
+        self.display.clear(BinaryColor::Off)?;
 
         for (i, c) in components.iter().enumerate() {
             c.draw(
