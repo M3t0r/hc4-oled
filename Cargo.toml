@@ -8,7 +8,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ssd1306 = "^0.7"
+ssd1306 = "^0.10.0"
 i2c-linux = "^0.1.2"
 embedded-graphics = "^0.8.0"
 display-interface = "^0.4.1"
