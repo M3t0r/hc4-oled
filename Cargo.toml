@@ -15,6 +15,6 @@ display-interface = "^0.4.1"
 embedded-hal = "^0.2.7"
 clap = {version="^4.0.0", features=["derive", "env"]}
 
-hostname = "^0.3"
+hostname = "^0.4.0"
 nix = {version="^0.24.1", features=["fs"]}
 systemstat = "^0.2.0"
