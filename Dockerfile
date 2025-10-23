@@ -1,4 +1,4 @@
-FROM rust:1.90-slim as builder
+FROM rust:1.90-slim-trixie as builder
 
 # could be "dev" for debug builds
 ARG PROFILE=release
@@ -16,7 +16,7 @@ RUN touch ./src/main.rs # tell cargo that the binary is outdated
 RUN cargo build --profile=${PROFILE}
 RUN mv target/*/oled ./
 
-FROM debian:stable as final
+FROM debian:trixie as final
 
 LABEL application=oled \
       version=unkown \
