@@ -41,10 +41,7 @@ impl Component for UpdateIndicator {
         ];
 
         Image::new(
-            &ImageRaw::<BinaryColor>::new(
-                FRAMES[tick as usize % FRAMES.len()],
-                3,
-            ),
+            &ImageRaw::<BinaryColor>::new(FRAMES[tick as usize % FRAMES.len()], 3),
             Point::new(64 - 3, 128 - 3),
         )
         .draw(&mut drawable.display)?;

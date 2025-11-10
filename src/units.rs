@@ -3,29 +3,9 @@ pub enum Base {
     Ten,
 }
 
-const BINARY_PREFIXES: [&str; 9] = [
-    "",
-    "Ki",
-    "Mi",
-    "Gi",
-    "Ti",
-    "Pi",
-    "Ei",
-    "Zi",
-    "Yi",
-];
+const BINARY_PREFIXES: [&str; 9] = ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi", "Yi"];
 
-const METRIC_PREFIXES: [&str; 9] = [
-    "",
-    "K",
-    "M",
-    "G",
-    "T",
-    "P",
-    "E",
-    "Z",
-    "Y",
-];
+const METRIC_PREFIXES: [&str; 9] = ["", "K", "M", "G", "T", "P", "E", "Z", "Y"];
 
 pub struct GlancableSizesWithOrdersOfMagnitude {
     unit_short: String,
@@ -36,9 +16,12 @@ impl GlancableSizesWithOrdersOfMagnitude {
     // todo: use float and allow decimal points?
     pub fn new(value: u64, base: Base) -> GlancableSizesWithOrdersOfMagnitude {
         if value == 0 {
-            return Self {unit_short: "B".to_string(), value: 0};
+            return Self {
+                unit_short: "B".to_string(),
+                value: 0,
+            };
         }
-        
+
         let mut remainder = value;
         let mut previous_remainder = 0u64;
         let mut magnitude = 0u64;

@@ -2,12 +2,12 @@ use std::collections::VecDeque;
 
 use super::{Component, Drawer, Error};
 
-use systemstat::{System, Platform, data::{DelayedMeasurement, CPULoad}};
-
-use embedded_graphics::{
-    prelude::*,
-    primitives::Line,
+use systemstat::{
+    data::{CPULoad, DelayedMeasurement},
+    Platform, System,
 };
+
+use embedded_graphics::{prelude::*, primitives::Line};
 
 pub struct Load {
     sys: System,
@@ -25,14 +25,16 @@ impl Load {
     }
 
     fn start_measurement(&mut self) -> Result<(), Error> {
-        self.measurement = self.sys.cpu_load_aggregate().map_err(|e| println!("Could not start load measurement: {:?}", e)).ok();
+        self.measurement = self
+            .sys
+            .cpu_load_aggregate()
+            .map_err(|e| println!("Could not start load measurement: {:?}", e))
+            .ok();
         Ok(())
     }
     fn collect_measurement(&mut self) -> Result<(), Error> {
         match &self.measurement {
-            None => {
-                Err("No measurement active to collect".into())
-            }
+            None => Err("No measurement active to collect".into()),
             Some(measurement) => {
                 let result = measurement.done()?;
                 self.measurement = None;
@@ -64,16 +66,17 @@ impl std::fmt::Debug for Load {
 
 impl Component for Load {
     fn should_update(&self, last_update: std::time::Duration) -> bool {
-        last_update > match self.measurement {
-            // when a measurement is in progress, update after 1 second to collect values
-            Some(_) => std::time::Duration::from_secs(1),
-            None => std::time::Duration::from_secs(60),
-        }
+        last_update
+            > match self.measurement {
+                // when a measurement is in progress, update after 1 second to collect values
+                Some(_) => std::time::Duration::from_secs(1),
+                None => std::time::Duration::from_secs(60),
+            }
     }
 
     fn update(&mut self) -> Result<(), Error> {
         if self.measurement.is_none() {
-            return self.start_measurement()
+            return self.start_measurement();
         }
         self.collect_measurement()
     }
@@ -81,9 +84,16 @@ impl Component for Load {
     fn draw(&self, drawable: &mut Drawer, offset: Point, _tick: u64) -> Result<(), Error> {
         for (i, datum) in self.graph_values.iter().enumerate() {
             Line::new(
-                Point::new(Drawer::WIDTH as i32 - i as i32, Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32) + offset,
-                Point::new(Drawer::WIDTH as i32 - i as i32, Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32) + offset
-            ).into_styled(drawable.base_primitive_style)
+                Point::new(
+                    Drawer::WIDTH as i32 - i as i32,
+                    Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32,
+                ) + offset,
+                Point::new(
+                    Drawer::WIDTH as i32 - i as i32,
+                    Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32,
+                ) + offset,
+            )
+            .into_styled(drawable.base_primitive_style)
             .draw(&mut drawable.display)?;
         }
 
@@ -91,22 +101,22 @@ impl Component for Load {
             if i % 10 == 0 {
                 Line::new(
                     Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
-                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset
-                ).into_styled(drawable.base_primitive_style)
+                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
+                )
+                .into_styled(drawable.base_primitive_style)
                 .draw(&mut drawable.display)?;
             }
         }
 
-        Line::new(
-            Point::new(0, 0) + offset,
-            Point::new(0, 0) + offset
-        ).into_styled(drawable.base_primitive_style)
-        .draw(&mut drawable.display)?;
+        Line::new(Point::new(0, 0) + offset, Point::new(0, 0) + offset)
+            .into_styled(drawable.base_primitive_style)
+            .draw(&mut drawable.display)?;
 
         Line::new(
             Point::new(Drawer::WIDTH.into(), 0) + offset,
-            Point::new(Drawer::WIDTH.into(), 0) + offset
-        ).into_styled(drawable.base_primitive_style)
+            Point::new(Drawer::WIDTH.into(), 0) + offset,
+        )
+        .into_styled(drawable.base_primitive_style)
         .draw(&mut drawable.display)?;
 
         Ok(())

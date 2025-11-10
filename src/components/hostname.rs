@@ -16,8 +16,7 @@ impl std::fmt::Display for Hostname {
     }
 }
 
-impl Component for Hostname
-{
+impl Component for Hostname {
     fn should_update(&self, _last_update: std::time::Duration) -> bool {
         self.hostname.is_none() // update when hostname not present
     }

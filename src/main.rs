@@ -13,7 +13,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use std::time::{Instant, SystemTime, Duration};
+use std::time::{Duration, Instant, SystemTime};
 
 use clap::Parser;
 
@@ -195,10 +195,13 @@ impl Drop for Drawer<'_> {
 }
 
 fn detect_disks(mount_folder: &Path) -> Result<Vec<PathBuf>, Error> {
-    mount_folder.read_dir()?.map(|f| {
-        let f = f?.path();
-        Ok(f)
-    }).collect()
+    mount_folder
+        .read_dir()?
+        .map(|f| {
+            let f = f?.path();
+            Ok(f)
+        })
+        .collect()
 }
 
 fn parse_brightness(value: &str) -> Result<Brightness, Error> {
@@ -247,10 +250,13 @@ fn main() {
 
     let known_disks = detect_disks(&args.mounts).expect("Could not collect known disks");
 
-    let mut drawer = Drawer::new_from_device_path(&args.device, args.brightness).expect("Could not access display");
+    let mut drawer = Drawer::new_from_device_path(&args.device, args.brightness)
+        .expect("Could not access display");
 
     let mut components: Vec<Box<dyn Component>> = Vec::with_capacity(8);
-    components.push(Box::new(Hostname { hostname: args.hostname }));
+    components.push(Box::new(Hostname {
+        hostname: args.hostname,
+    }));
     components.push(Box::new(Uptime::new()));
 
     components.extend(
@@ -273,7 +279,9 @@ fn main() {
     }
 
     if args.memory {
-        components.push(Box::new(Memory::new().expect("Could not collect memory stats")));
+        components.push(Box::new(
+            Memory::new().expect("Could not collect memory stats"),
+        ));
     }
 
     components.push(Box::new(UpdateIndicator {}));

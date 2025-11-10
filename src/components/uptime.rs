@@ -5,7 +5,7 @@ use embedded_graphics::{
     text::{Baseline, Text},
 };
 
-use systemstat::{System, Platform};
+use systemstat::{Platform, System};
 
 pub struct Uptime {
     sys: System,
@@ -42,8 +42,8 @@ impl Component for Uptime {
         let uptime = self.sys.uptime()?.as_secs();
         self.display_string = format!(
             "{:3}d{:02}h{:02}m",
-            uptime / (60*60*24),
-            uptime / (60*60) % 24,
+            uptime / (60 * 60 * 24),
+            uptime / (60 * 60) % 24,
             uptime / 60 % 60,
         );
         Ok(())

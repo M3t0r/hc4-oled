@@ -2,12 +2,9 @@ use std::collections::VecDeque;
 
 use super::{Component, Drawer, Error};
 
-use systemstat::{System, Platform};
+use systemstat::{Platform, System};
 
-use embedded_graphics::{
-    prelude::*,
-    primitives::Line,
-};
+use embedded_graphics::{prelude::*, primitives::Line};
 
 pub struct Memory {
     sys: System,
@@ -46,16 +43,24 @@ impl Component for Memory {
             self.graph_values.pop_back();
         }
         let usage = self.sys.memory()?;
-        self.graph_values.push_front(1.0 - (usage.free.as_u64() as f32 / usage.total.as_u64() as f32));
+        self.graph_values
+            .push_front(1.0 - (usage.free.as_u64() as f32 / usage.total.as_u64() as f32));
         Ok(())
     }
 
     fn draw(&self, drawable: &mut Drawer, offset: Point, _tick: u64) -> Result<(), Error> {
         for (i, datum) in self.graph_values.iter().enumerate() {
             Line::new(
-                Point::new(Drawer::WIDTH as i32 - i as i32, Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32) + offset,
-                Point::new(Drawer::WIDTH as i32 - i as i32, Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32) + offset
-            ).into_styled(drawable.base_primitive_style)
+                Point::new(
+                    Drawer::WIDTH as i32 - i as i32,
+                    Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32,
+                ) + offset,
+                Point::new(
+                    Drawer::WIDTH as i32 - i as i32,
+                    Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32,
+                ) + offset,
+            )
+            .into_styled(drawable.base_primitive_style)
             .draw(&mut drawable.display)?;
         }
 
@@ -63,22 +68,22 @@ impl Component for Memory {
             if i % 10 == 0 {
                 Line::new(
                     Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
-                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset
-                ).into_styled(drawable.base_primitive_style)
+                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
+                )
+                .into_styled(drawable.base_primitive_style)
                 .draw(&mut drawable.display)?;
             }
         }
 
-        Line::new(
-            Point::new(0, 0) + offset,
-            Point::new(0, 0) + offset
-        ).into_styled(drawable.base_primitive_style)
-        .draw(&mut drawable.display)?;
+        Line::new(Point::new(0, 0) + offset, Point::new(0, 0) + offset)
+            .into_styled(drawable.base_primitive_style)
+            .draw(&mut drawable.display)?;
 
         Line::new(
             Point::new(Drawer::WIDTH.into(), 0) + offset,
-            Point::new(Drawer::WIDTH.into(), 0) + offset
-        ).into_styled(drawable.base_primitive_style)
+            Point::new(Drawer::WIDTH.into(), 0) + offset,
+        )
+        .into_styled(drawable.base_primitive_style)
         .draw(&mut drawable.display)?;
 
         Ok(())
