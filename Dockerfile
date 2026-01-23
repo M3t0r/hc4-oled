@@ -1,4 +1,4 @@
-FROM rust:1.92-slim-trixie as builder
+FROM rust:1.93-slim-trixie as builder
 
 # could be "dev" for debug builds
 ARG PROFILE=release
