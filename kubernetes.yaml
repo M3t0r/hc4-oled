@@ -54,7 +54,7 @@ spec:
             memory: 1Mi
           limits:
             cpu: 20m
-            memory: 5Mi
+            memory: 8Mi
         volumeMounts:
         - mountPath: /host
           mountPropagation: HostToContainer
