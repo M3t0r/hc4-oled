@@ -1,15 +1,32 @@
+#[cfg(all(feature = "i2c", feature = "simulator"))]
+compile_error!("features `i2c` and `simulator` are mutually exclusive");
+
+#[cfg(not(any(feature = "i2c", feature = "simulator")))]
+compile_error!("enable exactly one display backend feature: `i2c` or `simulator`");
+
+#[cfg(feature = "simulator")]
+use embedded_graphics::pixelcolor::{Rgb888, RgbColor};
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X10, MonoTextStyle, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::PrimitiveStyle,
 };
+#[cfg(feature = "simulator")]
+use embedded_graphics_simulator::{
+    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, Window,
+};
+#[cfg(feature = "i2c")]
 use embedded_hal::i2c::SevenBitAddress;
+#[cfg(feature = "i2c")]
 use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
 
+#[cfg(feature = "i2c")]
 use i2c_linux::I2c;
 
+#[cfg(feature = "i2c")]
 use std::fs::File;
+#[cfg(feature = "i2c")]
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -25,22 +42,76 @@ use components::{
 mod units;
 pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
 
+#[cfg(feature = "i2c")]
 type Display = Ssd1306<
     I2CInterface<EmbeddedHALWriter<File>>,
     DisplaySize128x64,
     BufferedGraphicsMode<DisplaySize128x64>,
 >;
 
+#[cfg(feature = "simulator")]
+struct SimulatorDisplayBackend {
+    display: SimulatorDisplay<Rgb888>,
+}
+
+#[cfg(feature = "simulator")]
+type Display = SimulatorDisplayBackend;
+
+#[cfg(feature = "simulator")]
+impl SimulatorDisplayBackend {
+    fn new(size: Size) -> Self {
+        Self {
+            display: SimulatorDisplay::new(size),
+        }
+    }
+
+    fn flush(&mut self) -> Result<(), std::convert::Infallible> {
+        Ok(())
+    }
+}
+
+#[cfg(feature = "simulator")]
+impl DrawTarget for SimulatorDisplayBackend {
+    type Color = BinaryColor;
+    type Error = std::convert::Infallible;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        self.display
+            .draw_iter(pixels.into_iter().map(|Pixel(point, color)| {
+                Pixel(
+                    point,
+                    match color {
+                        BinaryColor::Off => Rgb888::BLACK,
+                        BinaryColor::On => Rgb888::WHITE,
+                    },
+                )
+            }))
+    }
+}
+
+#[cfg(feature = "simulator")]
+impl OriginDimensions for SimulatorDisplayBackend {
+    fn size(&self) -> Size {
+        self.display.size()
+    }
+}
+
+#[cfg(feature = "i2c")]
 // i2c_linux is written to use Linux system devices, while embedded_graphics is
 // targeting embedded device where the I2C bus is behind a bunch of registers,
 // not a path on the filesystem. But in the end they are both simple devices
 // expecting byte arrays to be written to them. So we just bridge the gap.
 struct EmbeddedHALWriter<I>(i2c_linux::I2c<I>);
 
+#[cfg(feature = "i2c")]
 impl embedded_hal::i2c::ErrorType for EmbeddedHALWriter<File> {
     type Error = IoError;
 }
 
+#[cfg(feature = "i2c")]
 impl embedded_hal::i2c::I2c<SevenBitAddress> for EmbeddedHALWriter<File> {
     fn transaction(
         &mut self,
@@ -62,20 +133,24 @@ impl embedded_hal::i2c::I2c<SevenBitAddress> for EmbeddedHALWriter<File> {
     }
 }
 
+#[cfg(feature = "i2c")]
 #[derive(Debug)]
 struct IoError {
     error: std::io::Error,
 }
+#[cfg(feature = "i2c")]
 impl embedded_hal::i2c::Error for IoError {
     fn kind(&self) -> embedded_hal::i2c::ErrorKind {
         embedded_hal::i2c::ErrorKind::Other
     }
 }
+#[cfg(feature = "i2c")]
 impl Into<std::io::Error> for IoError {
     fn into(self) -> std::io::Error {
         self.error
     }
 }
+#[cfg(feature = "i2c")]
 impl From<std::io::Error> for IoError {
     fn from(error: std::io::Error) -> Self {
         Self { error }
@@ -84,6 +159,7 @@ impl From<std::io::Error> for IoError {
 
 #[derive(Debug)]
 pub enum Error {
+    #[cfg(feature = "i2c")]
     DisplayError(display_interface::DisplayError),
     IOError(std::io::Error),
     Errno(nix::errno::Errno),
@@ -98,6 +174,7 @@ impl std::fmt::Display for Error {
             f,
             "{}",
             match self {
+                #[cfg(feature = "i2c")]
                 Self::DisplayError(inner) => format!("{:?}", inner),
                 Self::IOError(inner) => inner.to_string(),
                 Self::Errno(inner) => inner.to_string(),
@@ -113,9 +190,16 @@ impl From<std::io::Error> for Error {
     }
 }
 
+#[cfg(feature = "i2c")]
 impl From<display_interface::DisplayError> for Error {
     fn from(v: display_interface::DisplayError) -> Self {
         Self::DisplayError(v)
+    }
+}
+
+impl From<std::convert::Infallible> for Error {
+    fn from(v: std::convert::Infallible) -> Self {
+        match v {}
     }
 }
 
@@ -139,6 +223,8 @@ impl From<String> for Error {
 
 pub struct Drawer<'a> {
     display: Display,
+    #[cfg(feature = "simulator")]
+    window: Window,
     base_text_style: MonoTextStyle<'a, BinaryColor>,
     base_primitive_style: PrimitiveStyle<BinaryColor>,
 }
@@ -148,6 +234,8 @@ impl Drawer<'_> {
     pub const WIDTH: u8 = 64 - Self::BURNIN_OFFSET_MAX;
     pub const HEIGHT: u8 = 128 - Self::BURNIN_OFFSET_MAX;
     pub const LINE_HEIGHT: u8 = 11;
+
+    #[cfg(feature = "i2c")]
     pub fn new_from_device_path(path: &Path, brightness: Brightness) -> Result<Self, Error> {
         let mut display = Ssd1306::new(
             I2CDisplayInterface::new(EmbeddedHALWriter(I2c::<File>::from_path(path)?)),
@@ -161,6 +249,24 @@ impl Drawer<'_> {
 
         Ok(Self {
             display,
+            base_text_style: MonoTextStyleBuilder::new()
+                .font(&FONT_6X10)
+                .text_color(BinaryColor::On)
+                .build(),
+            base_primitive_style: PrimitiveStyle::with_stroke(BinaryColor::On, 1),
+        })
+    }
+
+    #[cfg(feature = "simulator")]
+    pub fn new_simulator() -> Result<Self, Error> {
+        let output_settings = OutputSettingsBuilder::new()
+            .theme(BinaryColorTheme::OledBlue)
+            .scale(4)
+            .build();
+
+        Ok(Self {
+            display: SimulatorDisplayBackend::new(Size::new(64, 128)),
+            window: Window::new("oled", &output_settings),
             base_text_style: MonoTextStyleBuilder::new()
                 .font(&FONT_6X10)
                 .text_color(BinaryColor::On)
@@ -186,10 +292,13 @@ impl Drawer<'_> {
         }
 
         self.display.flush()?;
+        #[cfg(feature = "simulator")]
+        self.window.update(&self.display.display);
         Ok(())
     }
 }
 
+#[cfg(feature = "i2c")]
 impl Drop for Drawer<'_> {
     fn drop(&mut self) {
         self.display.set_display_on(false).unwrap(); // turn off on shut down
@@ -206,6 +315,7 @@ fn detect_disks(mount_folder: &Path) -> Result<Vec<PathBuf>, Error> {
         .collect()
 }
 
+#[cfg(feature = "i2c")]
 fn parse_brightness(value: &str) -> Result<Brightness, Error> {
     match value.to_lowercase().as_str() {
         "brightest" => Ok(Brightness::BRIGHTEST),
@@ -221,6 +331,7 @@ fn parse_brightness(value: &str) -> Result<Brightness, Error> {
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// The I2C device to use to communicate with the display
+    #[cfg(feature = "i2c")]
     #[clap(long)]
     device: std::path::PathBuf,
 
@@ -253,6 +364,7 @@ struct Args {
     network_sysfs: PathBuf,
 
     /// Display brightness. Possible values are bightest, bright, normal, dim, dimmest.
+    #[cfg(feature = "i2c")]
     #[clap(short, long, default_value = "normal", value_parser = parse_brightness)]
     brightness: Brightness,
 }
@@ -264,6 +376,10 @@ fn main() {
 
     let known_disks = detect_disks(&args.mounts).expect("Could not collect known disks");
 
+    #[cfg(feature = "simulator")]
+    let mut drawer = Drawer::new_simulator().expect("Could not access display");
+
+    #[cfg(feature = "i2c")]
     let mut drawer = Drawer::new_from_device_path(&args.device, args.brightness)
         .expect("Could not access display");
 
