@@ -18,7 +18,9 @@ use std::time::{Duration, Instant, SystemTime};
 use clap::Parser;
 
 mod components;
-use components::{Component, Disk, Hostname, Load, Memory, UpdateIndicator, Uptime};
+use components::{
+    Component, Disk, Hostname, Load, Memory, NetworkThroughput, UpdateIndicator, Uptime,
+};
 
 mod units;
 pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
@@ -238,6 +240,18 @@ struct Args {
     #[clap(short, long)]
     memory: bool,
 
+    /// Enable network throughput display for a network adapter
+    #[clap(short, long, env = "OLED_NETWORK")]
+    network: Option<String>,
+
+    /// Where to find network adapters in sysfs
+    #[clap(
+        long = "network-sysfs",
+        env = "OLED_NETWORK_SYSFS",
+        default_value = "/sys/class/net"
+    )]
+    network_sysfs: PathBuf,
+
     /// Display brightness. Possible values are bightest, bright, normal, dim, dimmest.
     #[clap(short, long, default_value = "normal", value_parser = parse_brightness)]
     brightness: Brightness,
@@ -281,6 +295,13 @@ fn main() {
     if args.memory {
         components.push(Box::new(
             Memory::new().expect("Could not collect memory stats"),
+        ));
+    }
+
+    if let Some(network) = args.network {
+        components.push(Box::new(
+            NetworkThroughput::new(network, &args.network_sysfs)
+                .expect("Could not collect network stats"),
         ));
     }
 

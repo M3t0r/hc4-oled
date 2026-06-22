@@ -22,6 +22,7 @@ mod disk;
 mod hostname;
 mod load;
 mod memory;
+mod network;
 mod update_indicator;
 mod uptime;
 
@@ -29,5 +30,6 @@ pub use self::disk::Disk;
 pub use self::hostname::Hostname;
 pub use self::load::Load;
 pub use self::memory::Memory;
+pub use self::network::NetworkThroughput;
 pub use self::update_indicator::UpdateIndicator;
 pub use self::uptime::Uptime;
