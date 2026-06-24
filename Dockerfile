@@ -16,7 +16,7 @@ RUN touch ./src/main.rs # tell cargo that the binary is outdated
 RUN cargo build --profile=${PROFILE}
 RUN mv target/*/oled ./
 
-FROM debian:trixie-20260610 as final
+FROM debian:trixie-20260623 as final
 
 LABEL application=oled \
       version=unkown \
