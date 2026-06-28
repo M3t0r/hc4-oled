@@ -82,15 +82,17 @@ impl Component for Load {
     }
 
     fn draw(&self, drawable: &mut Drawer, offset: Point, _tick: u64) -> Result<(), Error> {
+        let graph_height = Drawer::LINE_HEIGHT - 1;
+
         for (i, datum) in self.graph_values.iter().enumerate() {
             Line::new(
                 Point::new(
                     Drawer::WIDTH as i32 - i as i32,
-                    Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32,
+                    graph_height as i32 - (graph_height as f32 * datum) as i32,
                 ) + offset,
                 Point::new(
                     Drawer::WIDTH as i32 - i as i32,
-                    Drawer::LINE_HEIGHT as i32 - (Drawer::LINE_HEIGHT as f32 * datum) as i32,
+                    graph_height as i32 - (graph_height as f32 * datum) as i32,
                 ) + offset,
             )
             .into_styled(drawable.base_primitive_style)
@@ -100,8 +102,8 @@ impl Component for Load {
         for i in 0..Drawer::WIDTH {
             if i % 10 == 0 {
                 Line::new(
-                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
-                    Point::new(i.into(), Drawer::LINE_HEIGHT.into()) + offset,
+                    Point::new(i.into(), graph_height.into()) + offset,
+                    Point::new(i.into(), graph_height.into()) + offset,
                 )
                 .into_styled(drawable.base_primitive_style)
                 .draw(&mut drawable.display)?;
