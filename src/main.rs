@@ -42,6 +42,8 @@ use components::{
 mod units;
 pub use units::{Base, GlancableSizesWithOrdersOfMagnitude};
 
+mod signals;
+
 #[cfg(feature = "i2c")]
 type Display = Ssd1306<
     I2CInterface<EmbeddedHALWriter<File>>,
@@ -371,6 +373,7 @@ struct Args {
 
 fn main() {
     println!("Starting");
+    signals::install_shutdown_handlers().expect("Could not install signal handlers");
     let args = Args::parse();
     dbg!(&args);
 
@@ -434,7 +437,7 @@ fn main() {
 
     println!("Started");
 
-    loop {
+    while !signals::shutdown_requested() {
         let epoch = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .expect("Could not get time");
@@ -458,4 +461,6 @@ fn main() {
         // sleep until the next full second
         std::thread::sleep(Duration::from_millis(epoch.subsec_millis().into()));
     }
+
+    println!("Stopping");
 }
