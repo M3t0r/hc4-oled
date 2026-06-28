@@ -30,7 +30,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use clap::Parser;
 
@@ -437,11 +437,10 @@ fn main() {
 
     println!("Started");
 
+    let epoch = Instant::now();
+
     while !signals::shutdown_requested() {
-        let epoch = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("Could not get time");
-        let tick = epoch.as_secs();
+        let tick = epoch.elapsed();
 
         for (i, c) in &mut components.iter_mut().enumerate() {
             if c.should_update(Instant::now() - last_updates[i]) {
@@ -455,11 +454,14 @@ fn main() {
         }
 
         drawer
-            .draw(tick, &mut components)
+            .draw(tick.as_secs(), &mut components)
             .expect("Could not draw update");
 
         // sleep until the next full second
-        std::thread::sleep(Duration::from_millis(epoch.subsec_millis().into()));
+        let pause =
+            Duration::from_secs(1) - Duration::from_millis(epoch.elapsed().subsec_millis().into());
+        dbg!(tick, pause);
+        std::thread::sleep(pause);
     }
 
     println!("Stopping");
