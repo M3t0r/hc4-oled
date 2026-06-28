@@ -27,7 +27,7 @@ impl Component for UpdateIndicator {
     fn draw(&self, drawable: &mut Drawer, _offset: Point, tick: u64) -> Result<(), Error> {
         #[rustfmt::skip]
         #[allow(clippy::unusual_byte_groupings)]
-        const FRAMES: &[&[u8]; 2] = &[
+        const FRAMES: &[&[u8]] = &[
             &[
                 0b010_00000,
                 0b000_00000,
@@ -35,8 +35,38 @@ impl Component for UpdateIndicator {
             ],
             &[
                 0b000_00000,
+                0b010_00000,
+                0b000_00000,
+            ],
+            &[
+                0b001_00000,
+                0b000_00000,
+                0b100_00000,
+            ],
+            &[
+                0b000_00000,
+                0b010_00000,
+                0b000_00000,
+            ],
+            &[
+                0b000_00000,
                 0b101_00000,
                 0b000_00000
+            ],
+            &[
+                0b000_00000,
+                0b010_00000,
+                0b000_00000,
+            ],
+            &[
+                0b100_00000,
+                0b000_00000,
+                0b001_00000,
+            ],
+            &[
+                0b000_00000,
+                0b010_00000,
+                0b000_00000,
             ],
         ];
 
